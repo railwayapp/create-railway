@@ -1,0 +1,7 @@
+{
+  "title": "Railway Sandbox",
+  "description": "Ephemeral compute: create, exec, destroy.",
+  "env": ["RAILWAY_API_TOKEN", "RAILWAY_ENVIRONMENT_ID"],
+  "nextSteps": ["pnpm install", "cp .env.example .env  # then fill in your credentials", "pnpm start"],
+  "symlinks": { "CLAUDE.md": "AGENTS.md" }
+}

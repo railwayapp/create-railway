@@ -1,0 +1,55 @@
+{
+  "name": "create-railway",
+  "version": "0.1.0",
+  "description": "Scaffold a new Railway project.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Railway <contact@railway.com>",
+  "homepage": "https://github.com/railwayapp/create-railway#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/railwayapp/create-railway.git"
+  },
+  "bugs": {
+    "url": "https://github.com/railwayapp/create-railway/issues"
+  },
+  "keywords": [
+    "railway",
+    "railway.app",
+    "create",
+    "scaffold",
+    "sandbox"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@11.3.0",
+  "bin": {
+    "create-railway": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "templates"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "smoke": "tsx scripts/smoke.ts",
+    "package:check": "publint --strict --pack npm && npm pack --dry-run",
+    "clean": "rm -rf dist coverage create-railway-*.tgz"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "publint": "^0.3.21",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.4"
+  }
+}

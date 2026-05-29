@@ -1,0 +1,6 @@
+node_modules
+dist
+coverage
+create-railway-*.tgz
+*.log
+.DS_Store

@@ -1,0 +1,45 @@
+[tools]
+node = "24"
+"npm:pnpm" = "11.3.0"
+
+[tasks.install]
+description = "Install dependencies"
+run = "pnpm install"
+
+[tasks.build]
+description = "Build the CLI"
+run = "pnpm run build"
+
+[tasks.dev]
+description = "Watch-build the CLI"
+run = "pnpm run dev"
+
+[tasks.typecheck]
+description = "Typecheck source and tests"
+run = "pnpm run typecheck"
+
+[tasks.test]
+description = "Run unit tests"
+run = "pnpm run test"
+
+[tasks.test-watch]
+description = "Run unit tests in watch mode"
+run = "pnpm run test:watch"
+
+[tasks.smoke]
+description = "Scaffold a template into a temp dir and assert the output"
+depends = ["build"]
+run = "pnpm run smoke"
+
+[tasks.check]
+description = "Run typecheck, tests, and build"
+depends = ["typecheck", "test", "build"]
+
+[tasks.package-check]
+description = "Validate the packed npm package"
+depends = ["build"]
+run = "pnpm run package:check"
+
+[tasks.clean]
+description = "Remove build/test artifacts"
+run = "pnpm run clean"
