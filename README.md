@@ -2,6 +2,9 @@
 
 Scaffold a new [Railway](https://railway.com) project in seconds.
 
+[![npm version](https://img.shields.io/npm/v/create-railway.svg)](https://www.npmjs.com/package/create-railway)
+[![license](https://img.shields.io/npm/l/create-railway.svg)](./LICENSE)
+
 ```bash
 bun create railway --sandbox
 # or
