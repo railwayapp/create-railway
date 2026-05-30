@@ -30,6 +30,23 @@ const { stdout, exitCode } = await sandbox.exec("ls"); // non-zero exit is NOT a
 - `exec` returns `{ exitCode, stdout, stderr, truncated, timedOut }` — check `exitCode`; a
   non-zero exit does not throw.
 - Prefer `await using` over a manual `destroy()` so the sandbox is always cleaned up.
-- Templates: `Sandbox.template().withPackages("ffmpeg").withEnv({ ... }).build()`.
 
-Docs: https://github.com/railwayapp/railway-ts-sdk#readme
+## Templates
+
+Build an environment once, then create sandboxes from it:
+
+```ts
+const base = Sandbox.template()
+  .withPackages("jq")          // install Debian packages
+  .withEnv({ KEY: "value" });  // env for later steps
+// .workdir("/app")            — optional working dir
+// .run("cmd")                 — optional raw build step
+// .build()                    — optional: pre-warm for caching
+
+await using sandbox = await Sandbox.create(base); // pass the template to create()
+await sandbox.exec("jq --version");
+```
+
+Everything after `withEnv` is optional — `Sandbox.create(base)` works on an unbuilt template.
+
+Full API & docs: https://github.com/railwayapp/railway-ts-sdk#readme
