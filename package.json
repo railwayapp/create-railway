@@ -1,7 +1,7 @@
 {
   "name": "create-railway",
   "version": "0.1.0",
-  "description": "Scaffold a new Railway project.",
+  "description": "Scaffold a TypeScript project that uses the Railway SDK.",
   "type": "module",
   "license": "MIT",
   "author": "Railway <contact@railway.com>",

@@ -7,8 +7,8 @@ Ephemeral compute via the [`railway`](https://www.npmjs.com/package/railway) SDK
 Set `RAILWAY_API_TOKEN` and `RAILWAY_ENVIRONMENT_ID` in `.env` (see `.env.example`), then:
 
 ```bash
-pnpm install
-pnpm start
+{{pm}} install
+{{pm}} start
 ```
 
 ## API cheat sheet
