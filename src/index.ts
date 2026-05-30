@@ -3,6 +3,7 @@ import { basename, resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import { c } from "./colors.ts";
+import { detectPackageManager } from "./pm.ts";
 import { DEFAULT_TEMPLATE, findTemplate, listTemplates, type Template } from "./registry.ts";
 import { scaffold } from "./scaffold.ts";
 
@@ -32,8 +33,9 @@ function main(argv: string[]): void {
     fail(`Directory ${targetDir} is not empty. Pass --yes to scaffold into it anyway.`);
   }
 
-  scaffold({ template, targetDir, projectName });
-  printNextSteps({ template, targetDir, projectName });
+  const pm = detectPackageManager();
+  scaffold({ template, targetDir, projectName, pm });
+  printNextSteps({ template, targetDir, projectName, pm });
 }
 
 function resolveTemplate({
@@ -63,10 +65,12 @@ function printNextSteps({
   template,
   targetDir,
   projectName,
+  pm,
 }: {
   template: Template;
   targetDir: string;
   projectName: string;
+  pm: string;
 }): void {
   const rel = relativeDir(targetDir);
 
@@ -75,7 +79,7 @@ function printNextSteps({
   );
   console.log(c.bold("Next steps:"));
   console.log(`  ${c.cyan(`cd ${rel}`)}`);
-  for (const step of template.nextSteps) console.log(`  ${colorizeStep(step)}`);
+  for (const step of template.nextSteps) console.log(`  ${colorizeStep(step.replaceAll("{{pm}}", pm))}`);
 
   if (template.env.length > 0) {
     console.log(`\n${c.bold("Credentials")} ${c.dim("(.env)")}`);
@@ -103,7 +107,7 @@ function colorizeStep(step: string): string {
 
 function printHelp(): void {
   const templates = listTemplates();
-  console.log(c.bold("Scaffold a new Railway project.\n"));
+  console.log(c.bold("Scaffold a TypeScript project that uses the Railway SDK.\n"));
   console.log(`${c.dim("Usage:")} create-railway ${c.cyan("[template]")} ${c.cyan("[dir]")} [options]\n`);
   console.log(c.bold("Templates:"));
   for (const t of templates) {

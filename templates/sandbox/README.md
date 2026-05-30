@@ -5,12 +5,12 @@ A [Railway sandbox](https://railway.com) quickstart — ephemeral compute via th
 ## Getting started
 
 ```bash
-pnpm install
+{{pm}} install
 cp .env.example .env   # then fill in RAILWAY_API_TOKEN + RAILWAY_ENVIRONMENT_ID
-pnpm start
+{{pm}} start
 ```
 
-`pnpm start` runs `index.ts`: it creates a sandbox, runs a command in it, and tears it down
+`{{pm}} start` runs `index.ts`: it creates a sandbox, runs a command in it, and tears it down
 automatically.
 
 ## Credentials

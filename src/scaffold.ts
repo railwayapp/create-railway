@@ -25,13 +25,15 @@ export function scaffold({
   template,
   targetDir,
   projectName,
+  pm,
 }: {
   template: Template;
   targetDir: string;
   projectName: string;
+  pm: string;
 }): void {
   mkdirSync(targetDir, { recursive: true });
-  copyDir({ from: template.dir, to: targetDir, projectName });
+  copyDir({ from: template.dir, to: targetDir, projectName, pm });
 
   for (const [linkPath, target] of Object.entries(template.symlinks)) {
     createSymlink({ dir: targetDir, linkPath, target });
@@ -42,10 +44,12 @@ function copyDir({
   from,
   to,
   projectName,
+  pm,
 }: {
   from: string;
   to: string;
   projectName: string;
+  pm: string;
 }): void {
   for (const entry of readdirSync(from)) {
     if (SKIP.has(entry)) continue;
@@ -55,11 +59,13 @@ function copyDir({
 
     if (statSync(src).isDirectory()) {
       mkdirSync(dest, { recursive: true });
-      copyDir({ from: src, to: dest, projectName });
+      copyDir({ from: src, to: dest, projectName, pm });
       continue;
     }
 
-    const content = readFileSync(src, "utf8").replaceAll("{{projectName}}", projectName);
+    const content = readFileSync(src, "utf8")
+      .replaceAll("{{projectName}}", projectName)
+      .replaceAll("{{pm}}", pm);
     writeFileSync(dest, content);
   }
 }
