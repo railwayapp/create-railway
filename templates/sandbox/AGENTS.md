@@ -21,6 +21,7 @@ const { stdout, exitCode } = await sandbox.exec("ls"); // non-zero exit is NOT a
 
 // Sandbox.connect(id)  — reattach to an existing sandbox
 // Sandbox.list()       — list sandboxes in the environment
+// sandbox.fork()       — clone this sandbox's filesystem into a new one
 // sandbox.refresh()    — re-read status/fields
 // sandbox.destroy()    — manual cleanup (prefer `await using`)
 ```
@@ -31,5 +32,8 @@ const { stdout, exitCode } = await sandbox.exec("ls"); // non-zero exit is NOT a
   non-zero exit does not throw.
 - Prefer `await using` over a manual `destroy()` so the sandbox is always cleaned up.
 - Templates: `Sandbox.template().withPackages("ffmpeg").withEnv({ ... }).build()`.
+- `fork` clones the filesystem (not live processes) into a fresh sandbox in the same
+  environment; the source must be `RUNNING`. `Sandbox.create(source)` is the static form;
+  pass `idleTimeoutMinutes` to override the fork's idle timeout.
 
 Docs: https://github.com/railwayapp/railway-ts-sdk#readme
