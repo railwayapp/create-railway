@@ -9,7 +9,7 @@
     "start": "tsx index.ts"
   },
   "dependencies": {
-    "railway": "^3.1.0"
+    "railway": "^3.3.0"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",
