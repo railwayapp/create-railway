@@ -4,12 +4,16 @@ Ephemeral compute via the [`railway`](https://www.npmjs.com/package/railway) SDK
 
 ## Setup
 
-Set `RAILWAY_API_TOKEN` and `RAILWAY_ENVIRONMENT_ID` in `.env` (see `.env.example`), then:
+Set `RAILWAY_TOKEN` (or `RAILWAY_API_TOKEN`) and `RAILWAY_ENVIRONMENT_ID` in `.env`
+(see `.env.example`), then:
 
 ```bash
 {{pm}} install
 {{pm}} start
 ```
+
+`RAILWAY_TOKEN` is a project token (`authType: "project-token"`). `RAILWAY_API_TOKEN`
+is an account/workspace bearer token. The SDK tries `RAILWAY_TOKEN` first.
 
 ## API cheat sheet
 
@@ -19,7 +23,7 @@ import { Sandbox } from "railway";
 await using sandbox = await Sandbox.create();          // auto-destroyed on scope exit
 const { stdout, exitCode } = await sandbox.exec("ls"); // non-zero exit is NOT a throw
 
-// Sandbox.create(opts)   — { env, networkIsolation, idleTimeoutMinutes }
+// Sandbox.create(opts)   — { env, networkIsolation, idleTimeoutMinutes, region }
 // Sandbox.create(tmpl)   — boot from a Sandbox.template() base
 // Sandbox.create(source) — fork an existing sandbox (static form of .fork())
 // Sandbox.create(name)   — boot from a saved checkpoint (see Checkpoints)
@@ -41,6 +45,8 @@ const { stdout, exitCode } = await sandbox.exec("ls"); // non-zero exit is NOT a
 const handle = sandbox.exec("npm run test:slow", {
   onStdout: (chunk) => process.stdout.write(chunk),
   timeoutSec: 120,
+  cwd: "/app",                 // fresh execs only
+  env: { CI: "true" },         // layered over sandbox env; visible in `ps`
 });
 
 // Durable: detach and reattach by sessionName — even from another process.
@@ -97,6 +103,17 @@ await using clone = await Sandbox.create("my-checkpoint");
 await Sandbox.deleteCheckpoint(checkpoint.id);
 ```
 
+### Regions
+
+```ts
+await using sandbox = await Sandbox.create({ region: "us-east4-eqdc4a" });
+sandbox.region; // logical region the platform selected
+
+// Works for blank sandboxes, templates, checkpoints, and forks.
+// Omitting region uses the platform default — forks do not inherit the source region.
+await sandbox.fork({ region: "europe-west4-drams3a" });
+```
+
 ## Notes
 
 - `exec` returns `{ exitCode, stdout, stderr, truncated, timedOut }` — check `exitCode`; a
@@ -104,7 +121,7 @@ await Sandbox.deleteCheckpoint(checkpoint.id);
 - Prefer `await using` over a manual `destroy()` so the sandbox is always cleaned up.
 - `Sandbox.create({ networkIsolation: "PRIVATE" })` joins the environment private network
   (default `"ISOLATED"` = public egress only). `env` sets runtime vars; `idleTimeoutMinutes`
-  overrides the idle shutdown.
+  overrides the idle shutdown; `region` picks where it runs.
 - `fork` clones the filesystem (not live processes) into a fresh sandbox in the same
   environment; the source must be `RUNNING`. `Sandbox.create(source)` is the static form.
 - A checkpoint is an immutable disk snapshot; the source must be `RUNNING` to capture, and
@@ -114,8 +131,38 @@ await Sandbox.deleteCheckpoint(checkpoint.id);
   created `0644`; pass `mode` to override). `remove` deletes files and empty dirs only —
   use `exec("rm -rf ...")` for recursive. Reads of missing paths throw
   `SandboxFileNotFoundError`.
-- Errors extend `RailwayError`: `RailwayAuthError`, `SandboxNotFoundError`,
-  `SandboxFailedError`, `SandboxTimeoutError`, `SandboxTemplateBuildError`,
-  `SandboxFilesError`, `SandboxFileNotFoundError`.
+- Per-exec `cwd`/`env` apply to fresh execs only (reattach by `sessionName` rejects them).
+  Exec `env` values are visible in `ps`; bake secrets in at `Sandbox.create({ env })`.
+- Errors extend `RailwayError`: `RailwayAuthError`, `RailwayConnectionError`,
+  `RailwayGraphQLError`, `SandboxNotFoundError`, `SandboxFailedError`,
+  `SandboxTimeoutError`, `SandboxTemplateBuildError`, `SandboxFilesError`,
+  `SandboxFileNotFoundError`, `ExecInterruptedError`.
+
+## Also in this SDK
+
+Feature flags and TypeScript IaC ship in the same `railway` package:
+
+```ts
+import { flags } from "railway";
+await flags.init(); // scope from RAILWAY_TOKEN / RAILWAY_PROJECT_ID
+if (flags.getBoolean("checkout-v2", { key: "user-123" })) { /* ... */ }
+flags.close();
+```
+
+```ts
+// .railway/railway.ts
+import { defineRailway, github, postgres, project, service } from "railway/iac";
+
+export default defineRailway(() => {
+  const db = postgres("db");
+  const web = service("web", {
+    source: github("acme/web"),
+    env: { DATABASE_URL: db.env.DATABASE_URL },
+  });
+  return project("my-app", { resources: [db, web] });
+});
+```
+
+Then `railway config plan` / `railway config apply` (CLI 5.42.1+). IaC is experimental.
 
 Docs: https://github.com/railwayapp/railway-ts-sdk#readme

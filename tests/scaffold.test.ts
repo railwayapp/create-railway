@@ -12,7 +12,8 @@ describe("registry", () => {
     const sandbox = findTemplate("sandbox");
     expect(sandbox).toBeDefined();
     expect(sandbox?.title).toBe("Railway Sandbox");
-    expect(sandbox?.env).toContain("RAILWAY_API_TOKEN");
+    expect(sandbox?.env).toContain("RAILWAY_TOKEN");
+    expect(sandbox?.env).toContain("RAILWAY_ENVIRONMENT_ID");
     expect(sandbox?.symlinks).toEqual({ "CLAUDE.md": "AGENTS.md" });
   });
 
@@ -45,12 +46,14 @@ describe("scaffold (sandbox)", () => {
     expect(() => lstatSync(join(dir, "_package.json"))).toThrow();
     expect(() => lstatSync(join(dir, "_gitignore"))).toThrow();
     expect(() => lstatSync(join(dir, "template.json"))).toThrow();
+    expect(readFileSync(join(dir, ".env.example"), "utf8")).toContain("RAILWAY_TOKEN=");
   });
 
   it("replaces {{projectName}} tokens", () => {
     run("acme");
     const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
     expect(pkg.name).toBe("acme");
+    expect(pkg.dependencies.railway).toBe("^3.11.0");
     expect(readFileSync(join(dir, "AGENTS.md"), "utf8")).toContain("acme");
   });
 
