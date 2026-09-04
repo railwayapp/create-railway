@@ -51,8 +51,8 @@ the registry discovers it.
 
 - Zero runtime dependencies — the CLI uses only `node:*`. Keep it that way.
 - Tests stay offline; never call Railway.
-- Templates reference the **published** `railway` package by version (e.g. `^3.0.0`); bump
-  manually on SDK majors. `create-railway` versions independently of the SDK.
+- Templates reference the **published** `railway` package by version (currently `^3.11.0`);
+  bump when a new SDK ships. `create-railway` versions independently of the SDK.
 - pnpm 11 gates esbuild's build script — approved via `allowBuilds` in `pnpm-workspace.yaml`.
 
 ## Release

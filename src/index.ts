@@ -85,7 +85,7 @@ function printNextSteps({
     console.log(`\n${c.bold("Credentials")} ${c.dim("(.env)")}`);
     for (const name of template.env) console.log(`  ${c.yellow(name)}`);
     console.log(
-      `\n  ${c.dim("API token:")}      ${c.cyan(c.underline("https://railway.com/account/tokens"))}`,
+      `\n  ${c.dim("Token:")}           ${c.cyan(c.underline("https://railway.com/account/tokens"))}`,
     );
     console.log(
       `  ${c.dim("Environment ID:")} ${c.dim("Railway project → Settings → copy the environment ID")}`,
