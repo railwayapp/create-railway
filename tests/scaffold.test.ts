@@ -53,7 +53,7 @@ describe("scaffold (sandbox)", () => {
     run("acme");
     const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
     expect(pkg.name).toBe("acme");
-    expect(pkg.dependencies.railway).toBe("^3.11.0");
+    expect(pkg.dependencies.railway).toBe("^3.18.0");
     expect(readFileSync(join(dir, "AGENTS.md"), "utf8")).toContain("acme");
   });
 
