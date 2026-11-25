@@ -35,7 +35,6 @@ const { stdout, exitCode } = await sandbox.exec("ls"); // non-zero exit is NOT a
 // sandbox.fork()         — clone this sandbox's filesystem into a new one
 // sandbox.checkpoint(n)  — capture this sandbox's disk as a named checkpoint
 // sandbox.files          — read/write the sandbox filesystem (see Files)
-// sandbox.execHttp(cmd)  — one HTTPS request; no streaming/stdin, output cut at 16,000 bytes
 // sandbox.sessions()     — list shells/exec sessions (null if unsupported)
 // sandbox.heartbeat()    — reset the idle countdown
 // sandbox.refresh()      — re-read status/fields
