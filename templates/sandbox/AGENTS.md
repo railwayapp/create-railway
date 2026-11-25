@@ -4,16 +4,17 @@ Ephemeral compute via the [`railway`](https://www.npmjs.com/package/railway) SDK
 
 ## Setup
 
-Set `RAILWAY_TOKEN` (or `RAILWAY_API_TOKEN`) and `RAILWAY_ENVIRONMENT_ID` in `.env`
-(see `.env.example`), then:
+Set `RAILWAY_TOKEN` in `.env` (see `.env.example`), then:
 
 ```bash
 {{pm}} install
 {{pm}} start
 ```
 
-`RAILWAY_TOKEN` is a project token (`authType: "project-token"`). `RAILWAY_API_TOKEN`
-is an account/workspace bearer token. The SDK tries `RAILWAY_TOKEN` first.
+`RAILWAY_TOKEN` is a project token (`authType: "project-token"`); the SDK uses the
+token's environment, so `RAILWAY_ENVIRONMENT_ID` is only needed to target a different one.
+`RAILWAY_API_TOKEN` is an account/workspace bearer token and always needs
+`RAILWAY_ENVIRONMENT_ID`. The SDK tries `RAILWAY_TOKEN` first.
 
 ## API cheat sheet
 
@@ -23,7 +24,7 @@ import { Sandbox } from "railway";
 await using sandbox = await Sandbox.create();          // auto-destroyed on scope exit
 const { stdout, exitCode } = await sandbox.exec("ls"); // non-zero exit is NOT a throw
 
-// Sandbox.create(opts)   — { env, networkIsolation, idleTimeoutMinutes, region }
+// Sandbox.create(opts)   — { env, networkIsolation, idleTimeoutMinutes, region, resources, domains }
 // Sandbox.create(tmpl)   — boot from a Sandbox.template() base
 // Sandbox.create(source) — fork an existing sandbox (static form of .fork())
 // Sandbox.create(name)   — boot from a saved checkpoint (see Checkpoints)
@@ -34,6 +35,9 @@ const { stdout, exitCode } = await sandbox.exec("ls"); // non-zero exit is NOT a
 // sandbox.fork()         — clone this sandbox's filesystem into a new one
 // sandbox.checkpoint(n)  — capture this sandbox's disk as a named checkpoint
 // sandbox.files          — read/write the sandbox filesystem (see Files)
+// sandbox.execHttp(cmd)  — one HTTPS request; no streaming/stdin, output cut at 16,000 bytes
+// sandbox.sessions()     — list shells/exec sessions (null if unsupported)
+// sandbox.heartbeat()    — reset the idle countdown
 // sandbox.refresh()      — re-read status/fields
 // sandbox.destroy()      — manual cleanup (prefer `await using`)
 ```
@@ -58,6 +62,26 @@ const result = await sb.exec({ sessionName }, {
 });
 // handle.kill(signal?) — defaults to "TERM"
 ```
+
+### Stdin, cancellation, and ephemeral execs
+
+```ts
+const handle = sandbox.exec("cat", { stdin: true, onStdout: (c) => process.stdout.write(c) });
+await handle.stdin.write("hello\n"); // await each write for backpressure
+await handle.stdin.end();            // EOF; without stdin: true, stdin closes immediately
+await handle;
+
+// signal: abort → TERM, KILL after 5s; rejects with the abort reason.
+const dev = sandbox.exec("npm run dev", { signal: controller.signal });
+
+// ephemeral: no durable session (no sessionName/detach); killed on disconnect.
+await sandbox.exec("git status --short", { ephemeral: true });
+```
+
+Output is captured in full by default. For long-running or chatty commands pass
+`captureOutput: false` (callbacks still get every chunk) or `maxOutputBytes` (sets
+`truncated`). Durable execs keep only ~8 MiB for reattach; use `ephemeral: true` for
+large output.
 
 ### Files
 
@@ -103,30 +127,37 @@ await using clone = await Sandbox.create("my-checkpoint");
 await Sandbox.deleteCheckpoint(checkpoint.id);
 ```
 
-### Regions
+### Regions, size, and domains
 
 ```ts
-await using sandbox = await Sandbox.create({ region: "us-east4-eqdc4a" });
-sandbox.region; // logical region the platform selected
-
-// Works for blank sandboxes, templates, checkpoints, and forks.
-// Omitting region uses the platform default — forks do not inherit the source region.
-await sandbox.fork({ region: "europe-west4-drams3a" });
+await using sandbox = await Sandbox.create({
+  region: "us-east4-eqdc4a",
+  resources: { cpu: 2, memoryGB: 4 },          // omitted fields use the workspace default
+  networkIsolation: "PRIVATE",                 // required for domains
+  domains: [{ port: 8080 }, { prefix: "api", port: 3000 }],
+});
+sandbox.region;  // logical region the platform selected
+sandbox.domains; // [{ prefix, port, domain }]
 ```
+
+Forks, templates, and checkpoints boot in the region their data lives in; requesting
+another region is rejected. Domains are create-time only and forks do not inherit them.
 
 ## Notes
 
 - `exec` returns `{ exitCode, stdout, stderr, truncated, timedOut }` — check `exitCode`; a
-  non-zero exit does not throw, and `exitCode` is `null` when killed or timed out.
+  non-zero exit does not throw. A `timeoutSec` timeout sets `timedOut` with `exitCode: -1`
+  (or `null` if no exit is confirmed); `exitCode` is `null` after `detach()`.
 - Prefer `await using` over a manual `destroy()` so the sandbox is always cleaned up.
 - `Sandbox.create({ networkIsolation: "PRIVATE" })` joins the environment private network
   (default `"ISOLATED"` = public egress only). `env` sets runtime vars; `idleTimeoutMinutes`
-  overrides the idle shutdown; `region` picks where it runs.
+  overrides the idle shutdown (`0` = never, on plans that allow it; otherwise call
+  `heartbeat()` within the timeout); `region` picks where it runs.
 - `fork` clones the filesystem (not live processes) into a fresh sandbox in the same
   environment; the source must be `RUNNING`. `Sandbox.create(source)` is the static form.
 - A checkpoint is an immutable disk snapshot; the source must be `RUNNING` to capture, and
   later changes to it don't affect the checkpoint. Boot by name (`key`), rename/delete by
-  `id`; duplicate names error.
+  `id`. Capturing an existing name replaces that checkpoint; renaming to one errors.
 - `files` paths are absolute within the sandbox. `write` auto-creates parent dirs (files
   created `0644`; pass `mode` to override). `remove` deletes files and empty dirs only —
   use `exec("rm -rf ...")` for recursive. Reads of missing paths throw
@@ -134,9 +165,13 @@ await sandbox.fork({ region: "europe-west4-drams3a" });
 - Per-exec `cwd`/`env` apply to fresh execs only (reattach by `sessionName` rejects them).
   Exec `env` values are visible in `ps`; bake secrets in at `Sandbox.create({ env })`.
 - Errors extend `RailwayError`: `RailwayAuthError`, `RailwayConnectionError`,
-  `RailwayGraphQLError`, `SandboxNotFoundError`, `SandboxFailedError`,
-  `SandboxTimeoutError`, `SandboxTemplateBuildError`, `SandboxFilesError`,
-  `SandboxFileNotFoundError`, `ExecInterruptedError`.
+  `RailwayGraphQLError`, `RailwayRateLimitError`, `SandboxNotFoundError`,
+  `SandboxFailedError`, `SandboxTimeoutError`, `SandboxTemplateBuildError`,
+  `SandboxFilesError`, `SandboxFileNotFoundError`, `ExecInterruptedError`,
+  `ExecNotStartedError`.
+- `RailwayRateLimitError` means nothing ran and the SDK did not retry; wait
+  `.retryAfterMs` (when set) before trying again. `ExecNotStartedError` also means the
+  command never ran, so it is safe to retry.
 
 ## Also in this SDK
 

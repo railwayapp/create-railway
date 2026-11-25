@@ -32,7 +32,7 @@ try {
 
   const pkg = JSON.parse(readFileSync(join(appDir, "package.json"), "utf8"));
   if (pkg.name !== "app") throw new Error(`projectName not applied: ${pkg.name}`);
-  if (pkg.dependencies?.railway !== "^3.11.0") {
+  if (pkg.dependencies?.railway !== "^3.18.0") {
     throw new Error(`unexpected railway version: ${pkg.dependencies?.railway}`);
   }
 
